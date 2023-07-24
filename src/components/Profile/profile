@@ -1,0 +1,159 @@
+import React, { useEffect, useState } from 'react';
+import Profile from './ProfilePage.module.css';
+import { useLocation, useHistory } from 'react-router-dom';
+import useFetch from '../../hooks/useFetch';
+import axios from 'axios';
+
+function ProfileMain() {
+  const location = useLocation();
+  const email = location.state;
+  const [redirect, setRedirect] = useState(false);
+  const [editMode, setEditMode] = useState(false); // Add this line
+  const [editData, setEditData] = useState({}); // Add this line
+
+  const emailValue = localStorage.getItem('email');
+  console.log(emailValue);
+
+  const { data, loading, error, refetch } = useFetch(
+    'http://localhost:8000/api/customers/'
+  );
+
+  const handleDeleteAccount = async () => {
+    try {
+      const response = await fetch(
+        `http://localhost:8000/api/customers/${emailValue}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (response.ok) {
+        console.log('Account deleted successfully');
+        setRedirect(true);
+      } else {
+        console.log('Failed to delete account');
+      }
+    } catch (error) {
+      console.error('Error deleting account', error);
+    }
+  };
+
+  const handleEditClick = () => {
+    setEditMode(true);
+    const customer = data.find((details) => details.email === emailValue);
+    setEditData(customer);
+  };
+
+  const handleEditChange = (event) => {
+    const name = event.target.name;
+    const value = event.target.value;
+    setEditData({ ...editData, [name]: value });
+  };
+
+  const handleEditSubmit = (event) => {
+    event.preventDefault();
+
+    axios
+      .put(`http://localhost:8000/api/customers/${emailValue}`, editData)
+      .then((response) => {
+        console.log(response.data);
+        alert('User details updated successfully');
+        setEditMode(false);
+        refetch();
+      })
+      .catch((error) => {
+        console.log(error);
+        alert('Failed to update user details');
+      });
+  };
+
+  useEffect(() => {
+    if (redirect) {
+      window.location.href = '/login';
+    }
+  }, [redirect]);
+
+  return (
+    <div>
+      <div className={Profile.row}>
+        <div className={Profile.col}>
+          <div className={Profile.buttonContainer}>
+            {editMode ? ( // Render edit form if in edit mode
+              <form onSubmit={handleEditSubmit}>
+                <input
+                  type="text"
+                  name="firstName"
+                  value={editData.firstName}
+                  onChange={handleEditChange}
+                />
+                <input
+                  type="text"
+                  name="lastName"
+                  value={editData.lastName}
+                  onChange={handleEditChange}
+                />
+                <input
+                  type="text"
+                  name="username"
+                  value={editData.username}
+                  onChange={handleEditChange}
+                />
+                <input
+                  type="text"
+                  name="address"
+                  value={editData.address}
+                  onChange={handleEditChange}
+                />
+                <input
+                  type="text"
+                  name="contactNo"
+                  value={editData.contactNo}
+                  onChange={handleEditChange}
+                />
+                <input
+                  type="date"
+                  name="dateOfBirth"
+                  value={editData.dateOfBirth}
+                  onChange={handleEditChange}
+                />
+                <input
+                  type="email"
+                  name="email"
+                  value={editData.email}
+                  onChange={handleEditChange}
+                />
+                <button type="submit">Save</button>
+              </form>
+            ) : (
+              <button className={Profile.buttons} onClick={handleEditClick}>
+                Edit Profile
+              </button>
+            )}
+            <button className={Profile.buttonDelete} onClick={handleDeleteAccount}>
+              Delete Account
+            </button>
+          </div>
+        </div>
+        {data.map((details, index) => {
+          console.log(details.dateOfBirth[0]);
+          if (`${details.email}` === emailValue)
+            return (
+              <div className={Profile.col1}>
+                <div className={Profile.details}>
+                  <p>First-Name: {details.firstName}</p>
+                  <p>Last-Name: {details.lastName}</p>
+                  <p>Username: {details.username}</p>
+                  <p>Contact-NO: {details.contactNo}</p>
+                  <p>Address: {details.address}</p>
+                  <p>Date-of-Birth: {details.dateOfBirth}</p>
+                  <p>Email: {details.email}</p>
+                </div>
+              </div>
+            );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export default ProfileMain;
